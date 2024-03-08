@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TODO App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>TODO App</h1>
+  
+  <form id="todoForm">
+    <input type="text" id="todoCategory" placeholder="Category" required>
+    <input type="text" id="todoDescription" placeholder="Description" required>
+    <input type="hidden" id="todoId" value="">
+    <button type="submit">Add Todo</button>
+    <button type="button" onclick="clearForm()">Clear</button>
+  </form>
+  
+  <ul id="todosList"></ul>
+
+  <script>
+    const todoForm = document.getElementById('todoForm');
+    const todosList = document.getElementById('todosList');
+    const todoCategory = document.getElementById('todoCategory');
+    const todoDescription = document.getElementById('todoDescription');
+    const todoId = document.getElementById('todoId');
+
+    todoForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const id = todoId.value;
+      const category = todoCategory.value.trim();
+      const description = todoDescription.value.trim();
+
+      if (id) {
+        updateTodo(id, { category, description });
+      } else {
+        addTodo({ category, description });
+      }
+    });
+
+    function addTodo(todo) {
+      fetch('/todos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(todo),
+      })
+      .then(response => response.json())
+      .then(data => {
+        clearForm();
+        fetchTodos();
+      })
+      .catch(err => console.error(err));
+    }
+
+    function updateTodo(id, todo) {
+      fetch(`/todos/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(todo),
+      })
+      .then(response => response.json())
+      .then(data => {
+        clearForm();
+        fetchTodos();
+      })
+      .catch(err => console.error(err));
+    }
+
+    function deleteTodo(id) {
+      fetch(`/todos/${id}`, {
+        method: 'DELETE',
+      })
+      .then(response => response.json())
+      .then(data => {
+        fetchTodos();
+      })
+      .catch(err => console.error(err));
+    }
+
+    function editTodo(id, category, description) {
+      todoCategory.value = category;
+      todoDescription.value = description;
+      todoId.value = id;
+    }
+
+    function clearForm() {
+      todoCategory.value = '';
+      todoDescription.value = '';
+      todoId.value = '';
+    }
+
+    function fetchTodos() {
+      fetch('/todos')
+        .then(response => response.json())
+        .then(todos => {
+          todosList.innerHTML = '';
+          todos.forEach(todo => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+              <div class="todo-item">
+                <span class="todo-text">${todo.category}: ${todo.description}</span>
+                <button onclick="editTodo('${todo.id}', '${todo.category}', '${todo.description}')">Edit</button>
+                <button onclick="deleteTodo('${todo.id}')">Delete</button>
+              </div>
+            `;
+            todosList.appendChild(li);
+          });
+        })
+        .catch(err => console.error(err));
+    }
+
+    fetchTodos();
+  </script>
+</body>
+</html>
